@@ -14,10 +14,12 @@ func main() {
     // Define command-line flags
     ipFile := flag.String("ci", "", "Path to the file containing IP addresses")
     subnetFile := flag.String("s", "", "Path to the file containing subnets")
+    foundFlag := flag.Bool("f", false, "Flag to specify IPs found in subnets")
+    notFoundFlag := flag.Bool("nf", false, "Flag to specify IPs not found in subnets")
     flag.Parse()
 
-    if *ipFile == "" || *subnetFile == "" {
-        fmt.Println("Usage: go run main.go -ci <ip_file> -s <subnet_file>")
+    if *ipFile == "" || *subnetFile == "" || !(*foundFlag != *notFoundFlag) {
+        fmt.Println("Usage: go run main.go -ci <ip_file> -s <subnet_file> (-f | -nf)")
         os.Exit(1)
     }
 
@@ -54,8 +56,8 @@ func main() {
                         break
                     }
                 }
-                if !found {
-                    fmt.Printf("%s\n", ipOrSubnet)
+                if (*foundFlag && found) || (*notFoundFlag && !found) {
+                    fmt.Println(ipOrSubnet)
                 }
             } else {
                 fmt.Printf("%s is not a valid IP address\n", ipOrSubnet)
@@ -75,7 +77,10 @@ func readLines(filename string) ([]string, error) {
     var lines []string
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
-        lines = append(lines, scanner.Text())
+        line := scanner.Text()
+        if strings.TrimSpace(line) != "" {
+            lines = append(lines, line)
+        }
     }
     return lines, scanner.Err()
 }
@@ -104,7 +109,7 @@ func ipInSubnet(ipOrSubnetStr, subnetStr string) bool {
 // Check if a string represents a valid IP address (including CIDR notation)
 func isValidIP(ipStr string) bool {
     // Regular expression to match IPv4 address format (with optional CIDR notation)
-    ipPattern := `^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(/\d{1,2})?$`
+    ipPattern := `^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(/\d{1,2})?\s*$`
     match, err := regexp.MatchString(ipPattern, ipStr)
     return match && err == nil
 }
